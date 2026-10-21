@@ -40,12 +40,12 @@ flowchart TD
 
 | Order | Module Directory | Purpose & Dependency Rationale |
 | :---: | :--- | :--- |
-| **1** | [`ge_model_armor`] | **Security & Guardrails Layer**: Provisions Model Armor templates, prompt injection/jailbreak detection, Responsible AI (RAI) safety filters, malicious URI checks, and SDP/PII inspection. Must be applied first to establish governance policies. |
-| **2a** | [`ge_connectors_data`](NOT READY) | **Data Layer (BigQuery)**: Provisions the Discovery Engine Data Store for BigQuery structured e-commerce data (`ecomm_events`). Must be created before attaching to the search app. |
-| **2b** | [`ge_connectors_mcp`](NOT READY) | **Data Layer (MCP Docs)**: Provisions the Discovery Engine Data Store for Model Context Protocol (MCP) developer documentation (`mcp_data`). Must be created before attaching to the search app. |
-| **2c** | [`ge_connectors_jira`] | **Integration Layer (Jira)**: Configures the federated Jira Data Connector with Business Application Platform (BAP) actions for issue management, comments, attachments, and status tracking. |
-| **2d** | [`ge_connectors_servicenow`] | **Integration Layer (ServiceNow)**: Configures the ServiceNow Data Connector (Data Ingestion & Actions) with BAP actions for incident creation and ticket lifecycle management. |
-| **3** | [`ge_app`] | **Application Layer**: Provisions the Gemini Enterprise Search Engine app (`google_discovery_engine_search_engine`), links the Data Stores provisioned in Step 2, and enables enterprise platform features. |
+| **1** | [`ge_model_armor`](ge_model_armor/) | **Security & Guardrails Layer**: Provisions Model Armor templates, prompt injection/jailbreak detection, Responsible AI (RAI) safety filters, malicious URI checks, and SDP/PII inspection. Must be applied first to establish governance policies. |
+| **2a** | [`ge_connectors_data`](ge_connectors_data/) (NOT READY) | **Data Layer (BigQuery)**: Provisions the Discovery Engine Data Store for BigQuery structured e-commerce data (`ecomm_events`). Must be created before attaching to the search app. |
+| **2b** | [`ge_connectors_mcp`](ge_connectors_mcp/) (NOT READY) | **Data Layer (MCP Docs)**: Provisions the Discovery Engine Data Store for Model Context Protocol (MCP) developer documentation (`mcp_data`). Must be created before attaching to the search app. |
+| **2c** | [`ge_connectors_jira`](ge_connectors_jira/) | **Integration Layer (Jira)**: Configures the federated Jira Data Connector with Business Application Platform (BAP) actions for issue management, comments, attachments, and status tracking. |
+| **2d** | [`ge_connectors_servicenow`](ge_connectors_servicenow/) | **Integration Layer (ServiceNow)**: Configures the ServiceNow Data Connector (Data Ingestion & Actions) with BAP actions for incident creation and ticket lifecycle management. |
+| **3** | [`ge_app`](ge_app/) | **Application Layer**: Provisions the Gemini Enterprise Search Engine app (`google_discovery_engine_search_engine`), links the Data Stores provisioned in Step 2, and enables enterprise platform features. |
 
 ---
 
@@ -80,13 +80,13 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 ## 📂 Detailed Module Breakdown & Documentation
 
 ### 1. Model Armor Security Guardrails (`ge_model_armor`)
-- **Directory Path**: [`ge_model_armor/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor)
-- **Primary Resource**: [`google_model_armor_template`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor/main.tf#L1) (using `google-beta` provider)
+- **Directory Path**: [`ge_model_armor/`](ge_model_armor)
+- **Primary Resource**: [`google_model_armor_template`](ge_model_armor/main.tf#L1) (using `google-beta` provider)
 - **Key Files**:
-  - [`main.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor/main.tf) - Defines security filter configurations and enforcement settings.
-  - [`variables.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor/variables.tf) - Declarations for location, thresholds, and filter rules.
-  - [`terraform.tfvars`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor/terraform.tfvars) - Default variable values for production guardrails.
-  - [`providers.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_model_armor/providers.tf) - Provider version declarations (`google-beta >= 7.3.0`).
+  - [`main.tf`](ge_model_armor/main.tf) - Defines security filter configurations and enforcement settings.
+  - [`variables.tf`](ge_model_armor/variables.tf) - Declarations for location, thresholds, and filter rules.
+  - [`terraform.tfvars`](ge_model_armor/terraform.tfvars) - Default variable values for production guardrails.
+  - [`providers.tf`](ge_model_armor/providers.tf) - Provider version declarations (`google-beta >= 7.3.0`).
 - **Configured Features**:
   - **Prompt Injection & Jailbreak Detection**: Enforces detection for confidence level `MEDIUM_AND_ABOVE`.
   - **Malicious URI Filtering**: Enabled to detect harmful links in inputs/outputs.
@@ -97,12 +97,13 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 ---
 
 ### 2. BigQuery Data Store (`ge_connectors_data`)
-- **Directory Path**: [`ge_connectors_data/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_data)
-- **Primary Resource**: [`google_discovery_engine_data_store.dc_bq`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_data/main.tf#L5)
+- **Directory Path**: [`ge_connectors_data/`](ge_connectors_data)
+- **Primary Resource**: [`google_discovery_engine_data_store.dc_bq`](ge_connectors_data/main.tf#L5)
 - **Key Files**:
-  - [`main.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_data/main.tf) - Provisions BigQuery structured data store (`ecomm_events`).
-  - [`variables.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_data/variables.tf) - Data store variables, schema IDs, and layout parsing options.
-  - [`terraform.tfvars`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_data/terraform.tfvars) - Data store configuration values.
+  - [`main.tf`](ge_connectors_data/main.tf) - Provisions BigQuery structured data store (`ecomm_events`).
+  - [`variables.tf`](ge_connectors_data/variables.tf) - Data store variables, schema IDs, and layout parsing options.
+  - [`terraform.tfvars`](ge_connectors_data/terraform.tfvars) - Data store configuration values.
+  - [`providers.tf`](ge_connectors_data/providers.tf) - Provider version declarations (`google >= 6.49.2`, `google-beta >= 7.3.0`).
 - **Configured Features**:
   - **Data Store ID**: `ecomm-events_1780862168950` (Display Name: `ecomm_events`)
   - **Industry Vertical**: `GENERIC`
@@ -112,12 +113,13 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 ---
 
 ### 3. MCP Developer Docs Data Store (`ge_connectors_mcp`)
-- **Directory Path**: [`ge_connectors_mcp/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_mcp)
-- **Primary Resource**: [`google_discovery_engine_data_store.dc_mcp`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_mcp/main.tf#L5)
+- **Directory Path**: [`ge_connectors_mcp/`](ge_connectors_mcp)
+- **Primary Resource**: [`google_discovery_engine_data_store.dc_mcp`](ge_connectors_mcp/main.tf#L5)
 - **Key Files**:
-  - [`main.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_mcp/main.tf) - Provisions Model Context Protocol (MCP) data store.
-  - [`variables.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_mcp/variables.tf) - Data store properties and schema bindings.
-  - [`terraform.tfvars`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_mcp/terraform.tfvars) - MCP data store settings (`kroger_demo_ds_mcp` / `mcp_data`).
+  - [`main.tf`](ge_connectors_mcp/main.tf) - Provisions Model Context Protocol (MCP) data store.
+  - [`variables.tf`](ge_connectors_mcp/variables.tf) - Data store properties and schema bindings.
+  - [`terraform.tfvars`](ge_connectors_mcp/terraform.tfvars) - MCP data store settings (`kroger_demo_ds_mcp` / `mcp_data`).
+  - [`providers.tf`](ge_connectors_mcp/providers.tf) - Provider version declarations (`google >= 6.49.2`, `google-beta >= 7.3.0`).
 - **Configured Features**:
   - **Data Store ID**: `developer-docs_1784867512211_mcp_data` / `kroger_demo_ds_mcp`
   - **Industry Vertical**: `GENERIC`
@@ -127,12 +129,13 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 ---
 
 ### 4. Federated Jira Connector & BAP Actions (`ge_connectors_jira`)
-- **Directory Path**: [`ge_connectors_jira/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_jira)
-- **Primary Resource**: [`google_discovery_engine_data_connector.jira-with-actions`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_jira/main.tf#L1)
+- **Directory Path**: [`ge_connectors_jira/`](ge_connectors_jira)
+- **Primary Resource**: [`google_discovery_engine_data_connector.jira-with-actions`](ge_connectors_jira/main.tf#L1)
 - **Key Files**:
-  - [`main.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_jira/main.tf) - Configures Jira OAuth connector, destination endpoints, entities, and BAP actions.
-  - [`variables.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_jira/variables.tf) - Declarations for Jira authentication, entity indexing, and BAP connection parameters.
-  - [`terraform.tfvars`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_connectors_jira/terraform.tfvars) - Credentials template and action configuration.
+  - [`main.tf`](ge_connectors_jira/main.tf) - Configures Jira OAuth connector, destination endpoints, entities, and BAP actions.
+  - [`variables.tf`](ge_connectors_jira/variables.tf) - Declarations for Jira authentication, entity indexing, and BAP connection parameters.
+  - [`terraform.tfvars`](ge_connectors_jira/terraform.tfvars) - Credentials template and action configuration.
+  - [`providers.tf`](ge_connectors_jira/providers.tf) - Provider version declarations (`google >= 6.49.2`, `google-beta >= 7.3.0`).
 - **Configured Features**:
   - **Connector Type**: `THIRD_PARTY_FEDERATED` (Data Source: `jira`, Version `3`)
   - **Auth Mode**: `OAUTH` with OAuth Client ID / Secret and periodic sync (`86400s`).
@@ -215,13 +218,14 @@ ServiceNow supports two distinct operational modes. Choose the mode that fits yo
 ---
 
 ### 6. Gemini Enterprise Search Application (`ge_app`)
-- **Directory Path**: [`ge_app/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app)
-- **Primary Resource**: [`google_discovery_engine_search_engine.kr_ge_app_tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/main.tf#L5)
+- **Directory Path**: [`ge_app/`](ge_app)
+- **Primary Resource**: [`google_discovery_engine_search_engine.kr_ge_app_tf`](ge_app/main.tf#L5)
 - **Key Files**:
-  - [`main.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/main.tf) - Defines search app parameters, attached data store IDs, subscription tier, and feature flags.
-  - [`variables.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/variables.tf) - Search engine configurations, enterprise feature flag schema, and knowledge graph settings.
-  - [`outputs.tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/outputs.tf) - Outputs search engine ID and resource name.
-  - [`terraform.tfvars`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/terraform.tfvars) - Target engine settings and feature state toggles.
+  - [`main.tf`](ge_app/main.tf) - Defines search app parameters, attached data store IDs, subscription tier, and feature flags.
+  - [`variables.tf`](ge_app/variables.tf) - Search engine configurations, enterprise feature flag schema, and knowledge graph settings.
+  - [`outputs.tf`](ge_app/outputs.tf) - Outputs search engine ID and resource name.
+  - [`terraform.tfvars`](ge_app/terraform.tfvars) - Target engine settings and feature state toggles.
+  - [`providers.tf`](ge_app/providers.tf) - Provider version declarations (`google >= 6.49.2`, `google-beta >= 7.3.0`).
 - **Configured Features**:
   - **App Type**: `APP_TYPE_INTRANET`
   - **Subscription Tier**: `SUBSCRIPTION_TIER_SEARCH_AND_ASSISTANT` with `SEARCH_ADD_ON_LLM` and `SEARCH_TIER_ENTERPRISE`.
