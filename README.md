@@ -10,11 +10,12 @@ The infrastructure is organized into dedicated, modular directories to enable de
 
 ```
 .
-├── ge_model_armor/       # Step 1: Model Armor security guardrails & safety templates
-├── ge_connectors_data/   # Step 2a: Discovery Engine Data Store for BigQuery (ecomm_events)
-├── ge_connectors_mcp/    # Step 2b: Discovery Engine Data Store for MCP / Developer Docs
-├── ge_connectors_jira/   # Step 2c: Third-party federated Jira Data Connector with BAP actions
-└── ge_app/               # Step 3: Main Gemini Enterprise Search Engine Application
+├── ge_model_armor/          # Step 1: Model Armor security guardrails & safety templates
+├── ge_connectors_data/      # Step 2a: Discovery Engine Data Store for BigQuery (ecomm_events)
+├── ge_connectors_mcp/       # Step 2b: Discovery Engine Data Store for MCP / Developer Docs
+├── ge_connectors_jira/      # Step 2c: Third-party federated Jira Data Connector with BAP actions
+├── ge_connectors_servicenow/ # Step 2d: Third-party ServiceNow Data Connector (Ingestion & Actions)
+└── ge_app/                  # Step 3: Main Gemini Enterprise Search Engine Application
 ```
 
 ---
@@ -28,9 +29,11 @@ flowchart TD
     Step1["Step 1: Security & Guardrails<br/><b>ge_model_armor</b>"] --> Step2A["Step 2a: BigQuery Data Store<br/><b>ge_connectors_data</b>"]
     Step1 --> Step2B["Step 2b: MCP Data Store<br/><b>ge_connectors_mcp</b>"]
     Step1 --> Step2C["Step 2c: Jira Connector & Actions<br/><b>ge_connectors_jira</b>"]
+    Step1 --> Step2D["Step 2d: ServiceNow Connector & Actions<br/><b>ge_connectors_servicenow</b>"]
     Step2A --> Step3["Step 3: Gemini Enterprise Search Engine<br/><b>ge_app</b>"]
     Step2B --> Step3
     Step2C --> Step3
+    Step2D --> Step3
 ```
 
 ### Module Execution Rationale & Dependencies
@@ -41,6 +44,7 @@ flowchart TD
 | **2a** | [`ge_connectors_data`](NOT READY) | **Data Layer (BigQuery)**: Provisions the Discovery Engine Data Store for BigQuery structured e-commerce data (`ecomm_events`). Must be created before attaching to the search app. |
 | **2b** | [`ge_connectors_mcp`](NOT READY) | **Data Layer (MCP Docs)**: Provisions the Discovery Engine Data Store for Model Context Protocol (MCP) developer documentation (`mcp_data`). Must be created before attaching to the search app. |
 | **2c** | [`ge_connectors_jira`] | **Integration Layer (Jira)**: Configures the federated Jira Data Connector with Business Application Platform (BAP) actions for issue management, comments, attachments, and status tracking. |
+| **2d** | [`ge_connectors_servicenow`] | **Integration Layer (ServiceNow)**: Configures the ServiceNow Data Connector (Data Ingestion & Actions) with BAP actions for incident creation and ticket lifecycle management. |
 | **3** | [`ge_app`] | **Application Layer**: Provisions the Gemini Enterprise Search Engine app (`google_discovery_engine_search_engine`), links the Data Stores provisioned in Step 2, and enables enterprise platform features. |
 
 ---
@@ -139,7 +143,25 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 
 ---
 
-### 5. Gemini Enterprise Search Application (`ge_app`)
+### 5. ServiceNow Data Connector & Actions (`ge_connectors_servicenow`)
+- **Directory Path**: [`ge_connectors_servicenow/`](ge_connectors_servicenow)
+- **Primary Resource**: [`google_discovery_engine_data_connector.servicenow-with-actions`](ge_connectors_servicenow/main.tf#L5)
+- **Key Files**:
+  - [`main.tf`](ge_connectors_servicenow/main.tf) - Configures ServiceNow OAuth/ROPC connector, destination endpoints, entities, and BAP actions.
+  - [`variables.tf`](ge_connectors_servicenow/variables.tf) - Declarations for ServiceNow authentication, entities, endpoints, rate limits, and BAP connection parameters.
+  - [`outputs.tf`](ge_connectors_servicenow/outputs.tf) - Exports connector ID, resource name, state, and generated entity data store IDs.
+  - [`terraform.tfvars`](ge_connectors_servicenow/terraform.tfvars) - Variable values and credentials template for ServiceNow.
+- **Configured Features**:
+  - **Connector Type**: `THIRD_PARTY` (Data Source: `servicenow`, Version `3`)
+  - **Auth Mode**: `OAUTH_PASSWORD_GRANT` (ROPC for Data Ingestion) and `OAUTH` (Authorization Code for Actions / Federated) with periodic sync (`86400s` full, `21600s` incremental).
+  - **Modes**: `DATA_INGESTION` and `ACTIONS` enabled (supports `FEDERATED`).
+  - **Business Application Platform (BAP) Actions**:
+    - `create_incident`, `update_incident` (with optional support for `create_change_request`, `create_task`, `create_service_catalog_request`, `update_service_catalog_request`, `create_request_item`, `update_request_item`, `submit_catalog_item`, `approve_record`).
+  - **Indexed Entities**: `incident`, `knowledge_base`, `catalog`, `knowledge`, `users`, `attachment`.
+
+---
+
+### 6. Gemini Enterprise Search Application (`ge_app`)
 - **Directory Path**: [`ge_app/`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app)
 - **Primary Resource**: [`google_discovery_engine_search_engine.kr_ge_app_tf`](file:///usr/local/google/home/kapsay/work/agy-cli-projects/ge-app-tf/ge_app/main.tf#L5)
 - **Key Files**:
