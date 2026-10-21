@@ -145,19 +145,72 @@ The executing identity requires the following minimum IAM roles on the GCP proje
 
 ### 5. ServiceNow Data Connector & Actions (`ge_connectors_servicenow`)
 - **Directory Path**: [`ge_connectors_servicenow/`](ge_connectors_servicenow)
-- **Primary Resource**: [`google_discovery_engine_data_connector.servicenow-with-actions`](ge_connectors_servicenow/main.tf#L5)
+- **Primary Resource**: [`google_discovery_engine_data_connector.servicenow-with-actions`](ge_connectors_servicenow/main.tf#L6)
+- **Documentation**:
+  - [Google Cloud: Set up a ServiceNow data store](https://docs.cloud.google.com/gemini/enterprise/docs/connectors/servicenow/set-up-data-store)
+  - [Google Cloud: ServiceNow third-party configuration](https://docs.cloud.google.com/gemini/enterprise/docs/connectors/servicenow/third-party-config)
+  - [Google Cloud: ServiceNow supported actions](https://docs.cloud.google.com/gemini/enterprise/docs/connectors/servicenow#supported-actions)
 - **Key Files**:
-  - [`main.tf`](ge_connectors_servicenow/main.tf) - Configures ServiceNow OAuth/ROPC connector, destination endpoints, entities, and BAP actions.
-  - [`variables.tf`](ge_connectors_servicenow/variables.tf) - Declarations for ServiceNow authentication, entities, endpoints, rate limits, and BAP connection parameters.
-  - [`outputs.tf`](ge_connectors_servicenow/outputs.tf) - Exports connector ID, resource name, state, and generated entity data store IDs.
-  - [`terraform.tfvars`](ge_connectors_servicenow/terraform.tfvars) - Variable values and credentials template for ServiceNow.
-- **Configured Features**:
-  - **Connector Type**: `THIRD_PARTY` (Data Source: `servicenow`, Version `3`)
-  - **Auth Mode**: `OAUTH_PASSWORD_GRANT` (ROPC for Data Ingestion) and `OAUTH` (Authorization Code for Actions / Federated) with periodic sync (`86400s` full, `21600s` incremental).
-  - **Modes**: `DATA_INGESTION` and `ACTIONS` enabled (supports `FEDERATED`).
-  - **Business Application Platform (BAP) Actions**:
-    - `create_incident`, `update_incident` (with optional support for `create_change_request`, `create_task`, `create_service_catalog_request`, `update_service_catalog_request`, `create_request_item`, `update_request_item`, `submit_catalog_item`, `approve_record`).
-  - **Indexed Entities**: `incident`, `knowledge_base`, `catalog`, `knowledge`, `users`, `attachment`.
+  - [`main.tf`](ge_connectors_servicenow/main.tf) - Configures the ServiceNow OAuth/ROPC connector, dynamic entities with optional inclusion filters, BAP action bindings, destination endpoints, and lifecycle rules.
+  - [`variables.tf`](ge_connectors_servicenow/variables.tf) - Declarations for ServiceNow credentials, endpoints, sync schedules, rate limits, entities, and actions.
+  - [`outputs.tf`](ge_connectors_servicenow/outputs.tf) - Exports connector ID, resource name, state, and auto-provisioned entity Data Store IDs.
+  - [`terraform.tfvars`](ge_connectors_servicenow/terraform.tfvars) - Variable values and credentials template with copy-paste blocks for both Federated Search and Data Ingestion modes.
+  - [`providers.tf`](ge_connectors_servicenow/providers.tf) - Provider version declarations (`google >= 6.49.2`, `google-beta >= 7.3.0`).
+
+#### Supported Connection Modes
+
+ServiceNow supports two distinct operational modes. Choose the mode that fits your architectural requirements:
+
+| Feature / Requirement | Option A: Federated Search & Actions | Option B: Data Ingestion & Actions |
+| :--- | :--- | :--- |
+| **`connector_modes`** | `["FEDERATED", "ACTIONS"]` | `["DATA_INGESTION", "ACTIONS"]` |
+| **Primary Use Case** | Real-time live queries directly against ServiceNow; zero data replication. Matches `ge_connectors_jira` architecture. | Synchronizes, crawls, and indexes ServiceNow records into a local Discovery Engine data store for high-performance semantic search. |
+| **Auth Grant Type** | `OAUTH` (OAuth Authorization Code grant) | `OAUTH_PASSWORD_GRANT` (Resource Owner Password Credentials / ROPC) |
+| **Required Credentials** | Client ID & Client Secret | Client ID, Client Secret, Ingestion User Account, & User Password |
+| **Action Execution** | Enabled via OAuth Authorization Code flow | Enabled via secondary OAuth Authorization Code flow |
+| **Data Freshness** | Immediate / Real-time | Periodic sync (`refresh_interval`, default `86400s`; `incremental_refresh_interval`, default `21600s`) |
+
+#### Parameter Reference & Coverage
+
+| Category | Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Core** | `servicenow_instance_uri` | `string` | *(Required)* | Base instance URL (e.g., `https://your-instance.service-now.com`). |
+| | `servicenow_client_id` | `string` | *(Required)* | OAuth Client ID from ServiceNow Application Registry. |
+| | `servicenow_client_secret` | `string` | *(Required)* | OAuth Client Secret (must be alphanumeric per ServiceNow guidelines). |
+| | `servicenow_auth_type` | `string` | `"OAUTH_PASSWORD_GRANT"` | Authentication grant type (`OAUTH_PASSWORD_GRANT` for Ingestion, `OAUTH` for Federated). |
+| | `servicenow_user_account` | `string` | `""` | Username / email for ingestion user (required for `DATA_INGESTION`). |
+| | `servicenow_password` | `string` | `""` | User password for ingestion user (required for `DATA_INGESTION`). |
+| **Endpoints** | `servicenow_destination_host` | `string` | *(Required)* | Host destination URL (`https://your-instance.service-now.com`). |
+| | `servicenow_action_auth_uri` | `string` | `"{uri}/oauth_auth.do"` | Authorization endpoint URL. Automatically derived from `servicenow_instance_uri`. |
+| | `servicenow_action_token_uri`| `string` | `"{uri}/oauth_token.do"`| Token endpoint URL. Automatically derived from `servicenow_instance_uri`. |
+| **Advanced** | `servicenow_max_qps` | `string` | `""` | Maximum queries per second rate limit sent to ServiceNow (empty = unthrottled, typical = `"100"`). |
+| | `servicenow_url_suffix` | `string` | `""` | Portal link suffix (e.g. `"sp"` for Service Portal). Empty uses native desktop UI links. |
+| | `servicenow_sync_since` | `string` | `""` | Optional ISO date cutoff (`YYYY-MM-DD`) to sync incidents created on or after this date. |
+| | `servicenow_static_ip_enabled`| `bool` | `false` | Enable dedicated static egress IP addresses for firewall allowlists. |
+| | `servicenow_action_include_system_tables` | `bool` | `false` | Controls whether ServiceNow system tables (`sys_*`) are exposed. Default `false`. |
+| **Sync** | `servicenow_refresh_interval` | `string` | `"86400s"` | Full sync schedule interval (24 hours). Minimum `1800s` (30m), maximum 7 days. |
+| | `servicenow_incremental_refresh_interval` | `string` | `"21600s"` | Incremental sync schedule interval (6 hours). |
+| **Entities** | `servicenow_entities` | `list(string)` | `["incident", ...]` | Default entities: `incident`, `knowledge_base`, `catalog`, `knowledge`, `users`, `attachment`. |
+| | `servicenow_entity_configs` | `list(object)` | `[]` | Advanced entity definitions with `inclusion_filters` (e.g. `knowledgeBaseSysId`, `catalogSysId`). |
+| **Actions** | `servicenow_bap_enabled_actions` | `list(string)` | `["create_incident", "update_incident"]` | Enabled BAP actions (incident creation/updating, change requests, catalog requests). |
+| **Security** | `kms_key_name` | `string` | `""` | Optional Cloud KMS encryption key resource name for CMEK compliance. |
+
+#### Prerequisites & ServiceNow Configuration
+
+1. **OAuth Application Registry**:
+   - In ServiceNow, navigate to **All > System OAuth > Application Registry > New**.
+   - For **Federated Search / Actions**: Select **Inbound integration experience > New integration** with Grant type **OAuth authorization code**. Set Redirect URL to:
+     ```
+     https://vertexaisearch.cloud.google.com/oauth-redirect,https://vertexaisearch.cloud.google.com/console/oauth/default_oauth.html
+     ```
+   - For **Data Ingestion**: Select **OAuth resource owner password credential grant type** (ROPC).
+   - Ensure the **Allow access only to APIs in selected scope** checkbox is unchecked (leaving scope empty ensures the integration is broadly scoped).
+2. **User Roles & Table API Access**:
+   - The integration identity requires access to the Table API (`snc_internal` or custom REST role).
+   - Accessible tables: `incident`, `sc_catalog`, `sc_cat_item`, `kb_knowledge`, `sys_attachment`, `sys_user`.
+   - To configure and manage ACL rules or elevate roles, administrative permissions (`security_admin` or `admin`) are required.
+3. **Table Indexing**:
+   - Verify that table indexing is enabled on your ServiceNow instance for search optimization.
 
 ---
 
@@ -215,9 +268,18 @@ terraform apply
 cd ..
 ```
 
-### Step 3: Deploy Third-Party Jira Connector
+### Step 3: Deploy Third-Party Connectors
+
 ```bash
+# 3a. Deploy Jira Data Connector
 cd ge_connectors_jira
+terraform init
+terraform plan
+terraform apply
+cd ..
+
+# 3b. Deploy ServiceNow Data Connector
+cd ge_connectors_servicenow
 terraform init
 terraform plan
 terraform apply
@@ -248,6 +310,12 @@ Each module directory includes a `terraform.tfvars` file containing module-speci
 | `engine_id` | `ge_app` | Search Engine Application ID (default: `kroger_demo_app_tf`) |
 | `data_store_ids` | `ge_app` | List of Data Store IDs attached to the Search Engine |
 | `jira_client_secret` | `ge_connectors_jira` | Sensitive Jira OAuth Client Secret |
+| `servicenow_instance_uri` | `ge_connectors_servicenow` | ServiceNow instance URL (e.g., `https://your-instance.service-now.com`) |
+| `servicenow_client_id` | `ge_connectors_servicenow` | ServiceNow OAuth Client ID |
+| `servicenow_client_secret` | `ge_connectors_servicenow` | Sensitive ServiceNow OAuth Client Secret |
+| `servicenow_user_account` | `ge_connectors_servicenow` | Username/email for ingestion user (Data Ingestion mode) |
+| `servicenow_password` | `ge_connectors_servicenow` | Sensitive password for ingestion user (Data Ingestion mode) |
+| `servicenow_connector_modes` | `ge_connectors_servicenow` | Connector modes (`["FEDERATED", "ACTIONS"]` or `["DATA_INGESTION", "ACTIONS"]`) |
 
 > [!IMPORTANT]
-> Never commit sensitive secrets (like `jira_client_secret`) or API keys to version control. Use environment variables (e.g., `TF_VAR_jira_client_secret`) or Google Cloud Secret Manager in automated CI/CD pipelines.
+> Never commit sensitive secrets (like `jira_client_secret`, `servicenow_client_secret`, or `servicenow_password`) or API keys to version control. Use environment variables (e.g., `TF_VAR_servicenow_client_secret`) or Google Cloud Secret Manager in automated CI/CD pipelines.
